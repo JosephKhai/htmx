@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <title>HTMX</title>
+</head>
+
+<body>
+    <div class="text-center m-10">
+        <h1 class="text-3xl font-bold my-5">
+            HTMX with Tailwind CSS
+        </h1>
+
+
+        <hr class="my-10" />
+
+        <div id="error-msg" class="mt-2 text-sm text-red-600 mb-4"></div>
+
+        <form id="add-fruits" hx-post="/fruits" hx-swap="none">
+
+            <div class="max-w-md mx-auto mt-6 p-4 bg-white shadow rounded space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Fruit Name
+                    </label>
+                    <input type="text" name="fruitName" required
+                        class="block w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="e.g. Apples">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Quantity
+                    </label>
+                    <input type="number" name="quantity" required
+                        class="block w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="e.g. 10">
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
+                        Add Fruit
+                    </button>
+                </div>
+            </div>
+
+        </form>
+
+
+        <div class="mt-6">
+            <div class="overflow-hidden rounded-lg bg-white shadow">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col"
+                                class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Item
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Quantity
+                            </th>
+                            <th scope="col"
+                                class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 overflow-hidden">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tbody" class="divide-y divide-gray-200 bg-white" hx-get="/fruits" hx-trigger="load"
+                        hx-swap="none" hx-target="#tbody">
+                        <!-- Initial loading row -->
+                        <tr>
+                            <td colspan="2" class="px-6 py-4 text-sm text-gray-500 italic text-center">
+                                Loading fruits…
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+
+        // Handle loading fruits into the table
+        const tbodyEl = document.getElementById('tbody');
+
+        tbodyEl.addEventListener('htmx:afterOnLoad', function (evt) {
+
+            if (evt.target !== tbodyEl) return; // only handle tbody requests
+
+            const data = evt.detail.xhr.response;
+            const jsonData = JSON.parse(data);
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = jsonData.map(row => `
+                <tr data-fruit-name="${row.fruitName}">
+                    <td class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-900">${row.fruitName}</td>
+                    <td class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">${row.quantity}</td>
+                    <td class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">                    
+                    <button
+                    type="button"
+                        class="inline-flex items-center rounded bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600"
+                        data-edit-name="${row.fruitName}"
+                        >
+                        Edit
+                    </button>                    
+                    <button
+                    type="button"
+                        class="inline-flex items-center rounded bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600"
+                        data-delete-name="${row.fruitName}"
+                        >
+                        Delete
+                    </button>
+                    </td>
+                </tr>                
+                `).join('');
+        });
+
+
+
+        // Handle form submission for adding fruits
+        document.getElementById('add-fruits')
+            .addEventListener('htmx:afterOnLoad', function (evt) {
+                const data = evt.detail.xhr.responseText;
+                const responseStatus = evt.detail.xhr.status;
+                const errorMsg = document.getElementById('error-msg');
+
+                errorMsg.innerHTML = '';
+
+                if (responseStatus >= 200 && responseStatus < 300) {
+
+                    const jsonData = JSON.parse(data);
+                    const tbody = document.getElementById('tbody');
+
+                    const newRow = document.createElement('tr');
+
+                    newRow.innerHTML = `
+                    <td class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-900">${jsonData.fruitName}</td>
+                    <td class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">${jsonData.quantity}</td>
+                    <td class="px-6 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                        <button
+                            type="button"
+                            class="inline-flex items-center rounded bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600"
+                            data-edit-name="${jsonData.fruitName}"
+                        >
+                            Edit
+                        </button>                  
+                        <button
+                            type="button"
+                                class="inline-flex items-center rounded bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600"
+                                data-delete-name="${jsonData.fruitName}"
+                                >
+                                Delete
+                        </button>
+                    </td>
+                `;
+                    tbody.appendChild(newRow);
+
+                    evt.target.reset();
+
+                } else {
+                    try {
+                        const errorData = JSON.parse(data);
+                        errorMsg.innerHTML = errorData.error;
+                    } catch (e) {
+                        errorMsg.innerHTML = 'Error adding fruit. Please try again.';
+                    }
+
+                }
+            });
+
+
+        // handle for editing and deleting the fruits
+
+        tbodyEl.addEventListener('click', async function (evt) {
+            const editBtn = evt.target.closest('button[data-edit-name]');
+            const deleteBtn = evt.target.closest('button[data-delete-name]');
+
+            if(deleteBtn){
+                const name = deleteBtn.getAttribute('data-delete-name');
+                if(!confirm(`Are you sure you want to delete ${name}?`)){
+                    return;
+                }
+
+                try{
+                    const response = await fetch(`/fruits/${encodeURIComponent(name)}`, {
+                        method: 'DELETE'
+                    });
+
+                    if(response.ok){
+                        deleteBtn.closest('tr').remove();
+                    } else {
+                        alert('Failed to delete the fruit. Please try again.');
+                    }
+                }catch(e){
+                    alert('Error deleting the fruit. Please try again.');
+                }
+            }
+
+
+            if(editBtn){
+                const name = editBtn.getAttribute('data-edit-name');
+                const currentRow = editBtn.closest('tr');
+                const quantityCell = currentRow.children[1];
+                const currentQuantity = quantityCell.textContent.trim();
+
+                const newQuantity = prompt(`Enter new quantity for ${name}:`, currentQuantity);
+                if(newQuantity === null) return; // user cancelled
+
+                try{
+                    const response = await fetch(`/fruits/${encodeURIComponent(name)}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ quantity: parseInt(newQuantity, 10) })
+                    });
+
+                    if(response.ok){
+                        quantityCell.textContent = newQuantity;
+                    } else {
+                        alert('Failed to update the fruit. Please try again.');
+                    }
+                }catch(e){
+                    alert('Error updating the fruit. Please try again.');
+                }
+            }
+
+        });
+
+
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.js"
+        integrity="sha384-ezjq8118wdwdRMj+nX4bevEi+cDLTbhLAeFF688VK8tPDGeLUe0WoY2MZtSla72F"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>
